@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "grid-engine": "./grid-engine.js",
+    "phaser": "./phaser.js",
+    "react": "./react.js",
+    "react-dom": "./react-dom.js",
+    "zustand": "./zustand.js"
+  }
+}
