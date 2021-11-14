@@ -47,6 +47,18 @@ export const getObjectLookedAt = (scene) => {
 export const getTiledObjectProperty = (name, object) => {
   return object.properties?.find((property) => property.name === name)?.value;
 };
+export const removeObject = (scene, object) => {
+  const removeTile = (layer) => scene.tilemap.removeTileAt(object.x, object.y, false, false, layer);
+  let removedTile = removeTile(Layers.WORLD2);
+  if (removedTile.index === -1) {
+    removedTile = removeTile(Layers.WORLD);
+  }
+  const objectLayer = scene.tilemap.objects[0];
+  const objects = objectLayer.objects;
+  const filteredObjects = objects.filter(({id}) => id !== object.id);
+  objectLayer.objects = filteredObjects;
+  scene.tilemap.objects = [objectLayer];
+};
 export const getSpawn = (scene) => {
   const spawnPoint = scene.tilemap.findObject(Layers.OBJECTS, (obj) => obj.name === Objects.SPAWN);
   const facingDirection = spawnPoint.properties?.find(({name}) => name === "spriteDirection")?.value;
@@ -98,7 +110,7 @@ export const handleDialogObject = (dialog) => {
 };
 export const handlePokeball = (scene, pokeball) => {
   const pokemonInside = pokeball.properties.find(({name}) => name === "pokemon_inside")?.value;
-  scene.tilemap.removeTileAt(pokeball.x, pokeball.y, false, false, Layers.WORLD);
+  removeObject(scene, pokeball);
   if (pokemonInside) {
     scene.sound.play(Audios.GAIN, getAudioConfig(0.1, false));
     openDialog(`You found a <span class="gain">${pokemonInside}</span> inside this pokeball!`);
