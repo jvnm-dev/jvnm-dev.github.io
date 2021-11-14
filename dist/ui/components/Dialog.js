@@ -44,5 +44,11 @@ export const Dialog = () => {
     className: "dialog"
   }, /* @__PURE__ */ React.createElement("div", {
     className: "inner"
-  }, stateRef.current.steps[state.currentStepIndex], /* @__PURE__ */ React.createElement("span", null, "\u25BC")));
+  }, /* @__PURE__ */ React.createElement("span", {
+    dangerouslySetInnerHTML: {
+      __html: stateRef.current.steps[state.currentStepIndex]
+    }
+  }), /* @__PURE__ */ React.createElement("span", {
+    className: "blink"
+  }, "\u25BC")));
 };

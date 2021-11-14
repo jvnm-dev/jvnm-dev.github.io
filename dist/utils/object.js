@@ -98,9 +98,10 @@ export const handleDialogObject = (dialog) => {
 };
 export const handlePokeball = (scene, pokeball) => {
   const pokemonInside = pokeball.properties.find(({name}) => name === "pokemon_inside")?.value;
+  scene.tilemap.removeTileAt(pokeball.x, pokeball.y, false, false, Layers.WORLD);
   if (pokemonInside) {
-    scene.sound.play(Audios.GAIN);
-    openDialog(`You found a ${pokemonInside} inside this pokeball!`);
+    scene.sound.play(Audios.GAIN, getAudioConfig(0.1, false));
+    openDialog(`You found a <span class="gain">${pokemonInside}</span> inside this pokeball!`);
   }
 };
 export const handleBicycle = (scene) => {
