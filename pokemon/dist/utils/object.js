@@ -3,7 +3,12 @@ import {TILE_SIZE} from "../constants/game.js";
 import {getCurrentPlayerTile} from "./map.js";
 import {getAudioConfig, playClick} from "./audio.js";
 import {Direction} from "../../web_modules/grid-engine.js";
-import {isDialogOpen, isUIOpen, toggleDialog} from "./ui.js";
+import {
+  isDialogOpen,
+  isUIOpen,
+  openDialog,
+  triggerDialogNextStep
+} from "./ui.js";
 export const findObjectByPosition = (scene, position) => {
   const {tilemap} = scene;
   const objects = tilemap.getObjectLayer(Layers.OBJECTS).objects.map((object) => ({
@@ -53,7 +58,24 @@ export const getSpawn = (scene) => {
     facingDirection
   };
 };
-export const handleObject = (scene, object) => {
+export const handleClickOnObject = (scene) => {
+  if (isDialogOpen()) {
+    playClick(scene);
+    return triggerDialogNextStep();
+  }
+  const object = getObjectLookedAt(scene);
+  if (object) {
+    playClick(scene);
+    switch (object.name) {
+      case Objects.DIALOG:
+        handleDialogObject(object);
+        break;
+      case Objects.POKEBALL:
+        handlePokeball(scene, object);
+    }
+  }
+};
+export const handleOverlappableObject = (scene, object) => {
   switch (object.name) {
     case Objects.DOOR:
       handleDoor(scene, object);
@@ -68,10 +90,23 @@ export const handleDoor = (scene, door) => {
   scene.sound.play(Audios.DOOR, getAudioConfig(0.5, false));
   scene.scene.restart({startPosition: {x, y}});
 };
+export const handleDialogObject = (dialog) => {
+  const content = dialog.properties.find(({name}) => name === "content")?.value;
+  if (content) {
+    openDialog(content);
+  }
+};
+export const handlePokeball = (scene, pokeball) => {
+  const pokemonInside = pokeball.properties.find(({name}) => name === "pokemon_inside")?.value;
+  if (pokemonInside) {
+    scene.sound.play(Audios.GAIN);
+    openDialog(`You found a ${pokemonInside} inside this pokeball!`);
+  }
+};
 export const handleBicycle = (scene) => {
   if (isDialogOpen()) {
     playClick(scene);
-    return toggleDialog();
+    return triggerDialogNextStep();
   }
   const mapProperties = scene.tilemap.properties;
   const isIndoor = mapProperties.find && mapProperties.find(({name}) => name === "indoor");
@@ -80,7 +115,7 @@ export const handleBicycle = (scene) => {
   }
   if (isIndoor) {
     playClick(scene);
-    toggleDialog("No bicycle inside!");
+    openDialog("No bicycle inside!");
     return;
   }
   const onBicycle = scene.receivedData.onBicycle;

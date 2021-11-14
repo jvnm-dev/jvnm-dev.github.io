@@ -2,14 +2,14 @@ import {Direction} from "../../web_modules/grid-engine.js";
 import {GAME_HEIGHT, GAME_WIDTH} from "../constants/game.js";
 import {Sprites, Layers, Tilesets, Maps} from "../constants/assets.js";
 import {
-  getObjectLookedAt,
   getObjectUnderPlayer,
   handleBicycle,
-  handleObject
+  handleClickOnObject,
+  handleOverlappableObject
 } from "../utils/object.js";
 import {playClick} from "../utils/audio.js";
 import {getStartPosition} from "../utils/map.js";
-import {isDialogOpen, isUIOpen, toggleDialog} from "../utils/ui.js";
+import {isUIOpen} from "../utils/ui.js";
 export default class WorldScene extends Phaser.Scene {
   constructor() {
     super("World");
@@ -46,7 +46,7 @@ export default class WorldScene extends Phaser.Scene {
   handleObjectsOverlap() {
     const objectUnderPlayer = getObjectUnderPlayer(this);
     if (objectUnderPlayer) {
-      handleObject(this, objectUnderPlayer);
+      handleOverlappableObject(this, objectUnderPlayer);
     }
   }
   initializePlayer() {
@@ -95,20 +95,7 @@ export default class WorldScene extends Phaser.Scene {
           this.sound.mute = !this.sound.mute;
           break;
         case "E":
-          if (isDialogOpen()) {
-            playClick(this);
-            return toggleDialog();
-          }
-          const object = getObjectLookedAt(this);
-          if (object) {
-            playClick(this);
-            if (object.name === "dialog") {
-              const content = object.properties.find(({name}) => name === "content")?.value;
-              if (content) {
-                toggleDialog(content);
-              }
-            }
-          }
+          handleClickOnObject(this);
           break;
         case "ESCAPE":
           playClick(this);
