@@ -4,6 +4,7 @@
     "phaser": "./phaser.js",
     "react": "./react.js",
     "react-dom": "./react-dom.js",
-    "zustand": "./zustand.js"
+    "zustand": "./zustand.js",
+    "zustand/middleware": "./zustand/middleware.js"
   }
 }

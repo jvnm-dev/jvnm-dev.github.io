@@ -9,13 +9,15 @@ import {
   openDialog,
   triggerDialogNextStep
 } from "./ui.js";
+import {useUserDataStore} from "../stores/userData.js";
+export const convertObjectPositionToTilePosition = (object) => ({
+  ...object,
+  x: ~~(object.x / TILE_SIZE),
+  y: ~~(object.y / TILE_SIZE)
+});
 export const findObjectByPosition = (scene, position) => {
   const {tilemap} = scene;
-  const objects = tilemap.getObjectLayer(Layers.OBJECTS).objects.map((object) => ({
-    ...object,
-    x: ~~(object.x / TILE_SIZE),
-    y: ~~(object.y / TILE_SIZE)
-  }));
+  const objects = tilemap.getObjectLayer(Layers.OBJECTS).objects.map((object) => convertObjectPositionToTilePosition(object));
   return objects.find((object) => object.x === position.x && object.y === position.y);
 };
 export const getObjectUnderPlayer = (scene) => {
@@ -50,7 +52,7 @@ export const getTiledObjectProperty = (name, object) => {
 export const removeObject = (scene, object) => {
   const removeTile = (layer) => scene.tilemap.removeTileAt(object.x, object.y, false, false, layer);
   let removedTile = removeTile(Layers.WORLD2);
-  if (removedTile.index === -1) {
+  if (removedTile?.index === -1) {
     removedTile = removeTile(Layers.WORLD);
   }
   const objectLayer = scene.tilemap.objects[0];
@@ -111,6 +113,7 @@ export const handleDialogObject = (dialog) => {
 export const handlePokeball = (scene, pokeball) => {
   const pokemonInside = pokeball.properties.find(({name}) => name === "pokemon_inside")?.value;
   removeObject(scene, pokeball);
+  useUserDataStore.getState().addObjectToInventory(pokeball.id);
   if (pokemonInside) {
     scene.sound.play(Audios.GAIN, getAudioConfig(0.1, false));
     openDialog(`You found a <span class="gain">${pokemonInside}</span> inside this pokeball!`);

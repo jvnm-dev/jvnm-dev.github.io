@@ -2,14 +2,17 @@ import {Direction} from "../../web_modules/grid-engine.js";
 import {GAME_HEIGHT, GAME_WIDTH} from "../constants/game.js";
 import {Sprites, Layers, Tilesets, Maps} from "../constants/assets.js";
 import {
+  convertObjectPositionToTilePosition,
   getObjectUnderPlayer,
   handleBicycle,
   handleClickOnObject,
-  handleOverlappableObject
+  handleOverlappableObject,
+  removeObject
 } from "../utils/object.js";
 import {playClick} from "../utils/audio.js";
 import {getStartPosition} from "../utils/map.js";
 import {isUIOpen} from "../utils/ui.js";
+import {useUserDataStore} from "../stores/userData.js";
 export default class WorldScene extends Phaser.Scene {
   constructor() {
     super("World");
@@ -24,6 +27,7 @@ export default class WorldScene extends Phaser.Scene {
     this.initializeCamera();
     this.initializeGrid();
     this.listenKeyboardControl();
+    this.applyUserData();
   }
   update() {
     if (isUIOpen()) {
@@ -136,5 +140,14 @@ export default class WorldScene extends Phaser.Scene {
         }
       }, this);
     }, 500);
+  }
+  applyUserData() {
+    const inventory = useUserDataStore.getState().inventory;
+    const userItemIds = inventory.map(({objectId}) => objectId);
+    this.tilemap.objects?.[0].objects.forEach((object) => {
+      if (userItemIds.includes(object.id)) {
+        removeObject(this, convertObjectPositionToTilePosition(object));
+      }
+    });
   }
 }
