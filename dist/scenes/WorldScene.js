@@ -10,7 +10,7 @@ import {
   removeObject
 } from "../utils/object.js";
 import {playClick} from "../utils/audio.js";
-import {getStartPosition} from "../utils/map.js";
+import {getCurrentPlayerTile, getStartPosition} from "../utils/map.js";
 import {isUIOpen} from "../utils/ui.js";
 import {useUserDataStore} from "../stores/userData.js";
 export default class WorldScene extends Phaser.Scene {
@@ -22,12 +22,13 @@ export default class WorldScene extends Phaser.Scene {
     this.receivedData = data;
   }
   create() {
+    this.applyUserDataBeforeRender();
     this.initializeTilemap();
     this.initializePlayer();
     this.initializeCamera();
     this.initializeGrid();
     this.listenKeyboardControl();
-    this.applyUserData();
+    this.applyUserDataAfterRender();
   }
   update() {
     if (isUIOpen()) {
@@ -113,6 +114,17 @@ export default class WorldScene extends Phaser.Scene {
   listenMoves() {
     const cursors = this.input.keyboard.createCursorKeys();
     const keys = this.input.keyboard.addKeys("W,S,A,D");
+    const userData = useUserDataStore.getState();
+    if (!this.gridEngine.isMoving(Sprites.PLAYER)) {
+      const currentTile = getCurrentPlayerTile(this);
+      if (currentTile && (userData.position?.x !== currentTile.x || userData.position?.y !== currentTile.y || userData.position?.map !== this.map)) {
+        userData.setPosition({
+          x: currentTile.x,
+          y: currentTile.y,
+          map: this.map
+        });
+      }
+    }
     if (cursors.left.isDown || keys.A.isDown) {
       this.gridEngine.move(Sprites.PLAYER, Direction.LEFT);
     } else if (cursors.right.isDown || keys.D.isDown) {
@@ -141,7 +153,13 @@ export default class WorldScene extends Phaser.Scene {
       }, this);
     }, 500);
   }
-  applyUserData() {
+  applyUserDataBeforeRender() {
+    const position = useUserDataStore.getState().position;
+    if (position?.map) {
+      this.map = position.map;
+    }
+  }
+  applyUserDataAfterRender() {
     const inventory = useUserDataStore.getState().inventory;
     const userItemIds = inventory.map(({objectId}) => objectId);
     this.tilemap.objects?.[0].objects.forEach((object) => {

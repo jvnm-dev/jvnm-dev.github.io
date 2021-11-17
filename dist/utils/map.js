@@ -1,3 +1,4 @@
+import {useUserDataStore} from "../stores/userData.js";
 import {Layers, Sprites} from "../constants/assets.js";
 import {getSpawn} from "./object.js";
 export const getCurrentPlayerTile = (scene) => {
@@ -11,8 +12,33 @@ export const getCurrentPlayerTile = (scene) => {
   };
 };
 export const getStartPosition = (scene) => {
+  const receivedData = scene.receivedData;
   const {startPosition: spawnPosition, facingDirection: spawnDirection} = getSpawn(scene);
-  const startPosition = scene.receivedData?.startPosition?.x ? scene.receivedData?.startPosition : spawnPosition;
-  const facingDirection = scene.receivedData.facingDirection ?? spawnDirection;
-  return {startPosition, facingDirection};
+  const facingDirection = receivedData.facingDirection ?? spawnDirection;
+  const position = useUserDataStore.getState().position;
+  if (receivedData?.startPosition?.x && receivedData?.startPosition?.y) {
+    return {
+      startPosition: {
+        x: receivedData.startPosition.x,
+        y: receivedData.startPosition.y
+      },
+      facingDirection
+    };
+  }
+  if (position?.x && position?.y) {
+    return {
+      startPosition: {
+        x: position.x,
+        y: position.y
+      },
+      facingDirection
+    };
+  }
+  return {
+    startPosition: {
+      x: spawnPosition.x,
+      y: spawnPosition.y
+    },
+    facingDirection
+  };
 };

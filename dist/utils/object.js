@@ -97,9 +97,15 @@ export const handleOverlappableObject = (scene, object) => {
   }
 };
 export const handleDoor = (scene, door) => {
+  const userData = useUserDataStore.getState();
   const nextMap = getTiledObjectProperty("nextMap", door);
   const x = getTiledObjectProperty("x", door);
   const y = getTiledObjectProperty("y", door);
+  userData.setPosition({
+    x,
+    y,
+    map: nextMap
+  });
   scene.map = nextMap;
   scene.sound.play(Audios.DOOR, getAudioConfig(0.5, false));
   scene.scene.restart({startPosition: {x, y}});

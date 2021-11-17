@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "../../web_modules/react.js";
 import {isUIOpen} from "../utils/ui.js";
 import {useUIStore} from "../stores/ui.js";
 import {useWindowSize} from "./hooks/useWindowSize.js";
+import {Menu} from "./components/Menu.js";
 import {Dialog} from "./components/Dialog.js";
 export const UI = () => {
   const [size, setSize] = useState({width: 0, height: 0});
@@ -21,5 +22,5 @@ export const UI = () => {
       width: size.width,
       height: size.height
     }
-  }, /* @__PURE__ */ React.createElement(Dialog, null));
+  }, /* @__PURE__ */ React.createElement(Menu, null), /* @__PURE__ */ React.createElement(Dialog, null));
 };
