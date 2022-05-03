@@ -14,8 +14,8 @@ export const getCurrentPlayerTile = (scene) => {
 export const getStartPosition = (scene) => {
   const receivedData = scene.receivedData;
   const {startPosition: spawnPosition, facingDirection: spawnDirection} = getSpawn(scene);
-  const facingDirection = receivedData.facingDirection ?? spawnDirection;
   const position = useUserDataStore.getState().position;
+  const facingDirection = receivedData?.facingDirection ?? position?.facingDirection ?? spawnDirection;
   if (receivedData?.startPosition?.x && receivedData?.startPosition?.y) {
     return {
       startPosition: {

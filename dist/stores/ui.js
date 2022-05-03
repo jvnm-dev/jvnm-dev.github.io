@@ -4,10 +4,18 @@ export const useUIStore = create((set) => ({
     isOpen: false,
     content: ""
   },
+  menu: {
+    isOpen: false
+  },
   toggleDialog: (content) => set((state) => ({
     dialog: {
       isOpen: !state.dialog.isOpen,
       content
+    }
+  })),
+  toggleMenu: () => set((state) => ({
+    menu: {
+      isOpen: !state.menu.isOpen
     }
   }))
 }));

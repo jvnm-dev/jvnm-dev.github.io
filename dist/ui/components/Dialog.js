@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from "../../../web_modules/react.js";
-import {DialogEvents} from "../../constants/events.js";
+import {UIEvents} from "../../constants/events.js";
 import {useUIStore} from "../../stores/ui.js";
 const defaultState = {
   steps: [],
@@ -25,8 +25,8 @@ export const Dialog = () => {
     }
   };
   useEffect(() => {
-    window.addEventListener(DialogEvents.NEXT_STEP, triggerNextStep);
-    () => window.removeEventListener(DialogEvents.NEXT_STEP, triggerNextStep);
+    window.addEventListener(UIEvents.NEXT_STEP, triggerNextStep);
+    () => window.removeEventListener(UIEvents.NEXT_STEP, triggerNextStep);
   }, []);
   useEffect(() => {
     const {isOpen, content} = store.dialog;
@@ -41,7 +41,10 @@ export const Dialog = () => {
     }
   }, [store.dialog]);
   return /* @__PURE__ */ React.createElement("div", {
-    className: "dialog"
+    className: "dialog",
+    style: {
+      display: store.dialog.isOpen ? "block" : "none"
+    }
   }, /* @__PURE__ */ React.createElement("div", {
     className: "inner"
   }, /* @__PURE__ */ React.createElement("span", {

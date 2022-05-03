@@ -11,8 +11,9 @@ import {
 } from "../utils/object.js";
 import {playClick} from "../utils/audio.js";
 import {getCurrentPlayerTile, getStartPosition} from "../utils/map.js";
-import {isUIOpen} from "../utils/ui.js";
+import {isUIOpen, openMenu, triggerUIDown, triggerUIUp} from "../utils/ui.js";
 import {useUserDataStore} from "../stores/userData.js";
+import {useUIStore} from "../stores/ui.js";
 export default class WorldScene extends Phaser.Scene {
   constructor() {
     super("World");
@@ -57,8 +58,9 @@ export default class WorldScene extends Phaser.Scene {
   initializePlayer() {
     const player = this.add.sprite(0, 0, Sprites.PLAYER);
     const bicycle = this.add.sprite(0, 0, Sprites.BICYCLE);
-    this.currentSprite = this.receivedData.onBicycle ? bicycle : player;
-    this.speed = this.receivedData.onBicycle ? 10 : 5;
+    const onBicycle = useUserDataStore.getState().onBicycle;
+    this.currentSprite = onBicycle ? bicycle : player;
+    this.speed = onBicycle ? 10 : 5;
     this.currentSprite.setOrigin(0.5, 0.5);
     this.currentSprite.setDepth(1);
     this.currentSprite.setScale(1.25);
@@ -95,6 +97,8 @@ export default class WorldScene extends Phaser.Scene {
   }
   listenKeyboardControl() {
     this.input.keyboard.on("keyup", (event) => {
+      const uiStore = useUIStore.getState();
+      const isOpen = uiStore.menu.isOpen || uiStore.dialog.isOpen;
       switch (event.key.toUpperCase()) {
         case "M":
           this.sound.mute = !this.sound.mute;
@@ -104,9 +108,22 @@ export default class WorldScene extends Phaser.Scene {
           break;
         case "ESCAPE":
           playClick(this);
+          openMenu();
           break;
         case " ":
           handleBicycle(this);
+          break;
+        case "ARROWDOWN":
+          if (isOpen) {
+            playClick(this);
+            triggerUIDown();
+          }
+          break;
+        case "ARROWUP":
+          if (isOpen) {
+            playClick(this);
+            triggerUIUp();
+          }
           break;
       }
     });
@@ -118,10 +135,13 @@ export default class WorldScene extends Phaser.Scene {
     if (!this.gridEngine.isMoving(Sprites.PLAYER)) {
       const currentTile = getCurrentPlayerTile(this);
       if (currentTile && (userData.position?.x !== currentTile.x || userData.position?.y !== currentTile.y || userData.position?.map !== this.map)) {
-        userData.setPosition({
-          x: currentTile.x,
-          y: currentTile.y,
-          map: this.map
+        userData.update({
+          position: {
+            x: currentTile.x,
+            y: currentTile.y,
+            map: this.map,
+            facingDirection: this.gridEngine.getFacingDirection(Sprites.PLAYER)
+          }
         });
       }
     }
@@ -134,24 +154,6 @@ export default class WorldScene extends Phaser.Scene {
     } else if (cursors.down.isDown || keys.S.isDown) {
       this.gridEngine.move(Sprites.PLAYER, Direction.DOWN);
     }
-    setTimeout(() => {
-      this.input.on("pointerup", (pointer) => {
-        const getTile = (x, y, layer) => {
-          return this.tilemap.getTileAtWorldXY(x, y, true, this.cameras.main, layer);
-        };
-        const tileWorld = getTile(pointer.worldX, pointer.worldY, Layers.WORLD);
-        const tileWorld2 = getTile(pointer.worldX, pointer.worldY, Layers.WORLD2);
-        const targetX = tileWorld.x ?? tileWorld2.x ?? 0;
-        const targetY = tileWorld.y ?? tileWorld2.y ?? 0;
-        const targetCollides = tileWorld.properties.collides ?? tileWorld2.properties.collides;
-        if (!targetCollides) {
-          this.gridEngine.setPosition("player", {
-            x: targetX,
-            y: targetY
-          });
-        }
-      }, this);
-    }, 500);
   }
   applyUserDataBeforeRender() {
     const position = useUserDataStore.getState().position;

@@ -1,9 +1,13 @@
 import create from "../../web_modules/zustand.js";
 import {persist, devtools} from "../../web_modules/zustand/middleware.js";
 export const useUserDataStore = create(devtools(persist((set) => ({
-  setPosition: (position) => {
-    set((state) => ({...state, position}));
+  update: (updates) => {
+    set((state) => ({
+      ...state,
+      ...updates
+    }));
   },
+  onBicycle: Boolean(false),
   inventory: [],
   addObjectToInventory: (objectId) => {
     set((state) => ({
