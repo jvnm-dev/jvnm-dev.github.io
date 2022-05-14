@@ -1,3 +1,124 @@
+var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
+var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
+var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp$1.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols$1)
+    for (var prop of __getOwnPropSymbols$1(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum$1.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
+const devtoolsImpl = (fn, devtoolsOptions = {}) => (set, get, api) => {
+  const _a = devtoolsOptions, { enabled, anonymousActionType } = _a, options = __objRest(_a, ["enabled", "anonymousActionType"]);
+  let extensionConnector;
+  try {
+    extensionConnector = (enabled != null ? enabled : (import.meta.env && import.meta.env.MODE) !== "production") && window.__REDUX_DEVTOOLS_EXTENSION__;
+  } catch {
+  }
+  if (!extensionConnector) {
+    if ((import.meta.env && import.meta.env.MODE) !== "production" && enabled) {
+      console.warn("[zustand devtools middleware] Please install/enable Redux devtools extension");
+    }
+    return fn(set, get, api);
+  }
+  const extension = extensionConnector.connect(options);
+  let isRecording = true;
+  api.setState = (state, replace, nameOrAction) => {
+    const r = set(state, replace);
+    if (!isRecording)
+      return r;
+    extension.send(nameOrAction === void 0 ? { type: anonymousActionType || "anonymous" } : typeof nameOrAction === "string" ? { type: nameOrAction } : nameOrAction, get());
+    return r;
+  };
+  const setStateFromDevtools = (...a) => {
+    const originalIsRecording = isRecording;
+    isRecording = false;
+    set(...a);
+    isRecording = originalIsRecording;
+  };
+  const initialState = fn(api.setState, get, api);
+  extension.init(initialState);
+  if (api.dispatchFromDevtools && typeof api.dispatch === "function") {
+    let didWarnAboutReservedActionType = false;
+    const originalDispatch = api.dispatch;
+    api.dispatch = (...a) => {
+      if ((import.meta.env && import.meta.env.MODE) !== "production" && a[0].type === "__setState" && !didWarnAboutReservedActionType) {
+        console.warn('[zustand devtools middleware] "__setState" action type is reserved to set state from the devtools. Avoid using it.');
+        didWarnAboutReservedActionType = true;
+      }
+      originalDispatch(...a);
+    };
+  }
+  extension.subscribe((message) => {
+    var _a2;
+    switch (message.type) {
+      case "ACTION":
+        if (typeof message.payload !== "string") {
+          console.error("[zustand devtools middleware] Unsupported action format");
+          return;
+        }
+        return parseJsonThen(message.payload, (action) => {
+          if (action.type === "__setState") {
+            setStateFromDevtools(action.state);
+            return;
+          }
+          if (!api.dispatchFromDevtools)
+            return;
+          if (typeof api.dispatch !== "function")
+            return;
+          api.dispatch(action);
+        });
+      case "DISPATCH":
+        switch (message.payload.type) {
+          case "RESET":
+            setStateFromDevtools(initialState);
+            return extension.init(api.getState());
+          case "COMMIT":
+            return extension.init(api.getState());
+          case "ROLLBACK":
+            return parseJsonThen(message.state, (state) => {
+              setStateFromDevtools(state);
+              extension.init(api.getState());
+            });
+          case "JUMP_TO_STATE":
+          case "JUMP_TO_ACTION":
+            return parseJsonThen(message.state, (state) => {
+              setStateFromDevtools(state);
+            });
+          case "IMPORT_STATE": {
+            const { nextLiftedState } = message.payload;
+            const lastComputedState = (_a2 = nextLiftedState.computedStates.slice(-1)[0]) == null ? void 0 : _a2.state;
+            if (!lastComputedState)
+              return;
+            setStateFromDevtools(lastComputedState);
+            extension.send(null, nextLiftedState);
+            return;
+          }
+          case "PAUSE_RECORDING":
+            return isRecording = !isRecording;
+        }
+        return;
+    }
+  });
+  return initialState;
+};
+const devtools = devtoolsImpl;
+const parseJsonThen = (stringified, f) => {
+  let parsed;
+  try {
+    parsed = JSON.parse(stringified);
+  } catch (e) {
+    console.error("[zustand devtools middleware] Could not parse the received json", e);
+  }
+  if (parsed !== void 0)
+    f(parsed);
+};
+
 var __defProp = Object.defineProperty;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
@@ -13,78 +134,6 @@ var __spreadValues = (a, b) => {
         __defNormalProp(a, prop, b[prop]);
     }
   return a;
-};
-const DEVTOOLS = Symbol();
-const devtools = (fn, options) => (set, get, api) => {
-  let extension;
-  try {
-    extension = window.__REDUX_DEVTOOLS_EXTENSION__ || window.top.__REDUX_DEVTOOLS_EXTENSION__;
-  } catch {
-  }
-  if (!extension) {
-    delete api.devtools;
-    return fn(set, get, api);
-  }
-  const namedSet = (state, replace, name) => {
-    set(state, replace);
-    if (!api.dispatch && api.devtools) {
-      api.devtools.send(api.devtools.prefix + (name || "action"), get());
-    }
-  };
-  api.setState = namedSet;
-  const initialState = fn(namedSet, get, api);
-  if (!api.devtools) {
-    const savedSetState = api.setState;
-    api.setState = (state, replace) => {
-      const newState = api.getState();
-      if (state !== newState) {
-        savedSetState(state, replace);
-        if (state !== newState[DEVTOOLS] && api.devtools) {
-          api.devtools.send(api.devtools.prefix + "setState", api.getState());
-        }
-      }
-    };
-    options = typeof options === "string" ? { name: options } : options;
-    const connection = api.devtools = extension.connect(__spreadValues({}, options));
-    connection.prefix = (options == null ? void 0 : options.name) ? `${options.name} > ` : "";
-    connection.subscribe((message) => {
-      var _a, _b, _c, _d;
-      if (message.type === "ACTION" && message.payload) {
-        try {
-          api.setState(JSON.parse(message.payload));
-        } catch (e) {
-          console.error("please dispatch a serializable value that JSON.parse() support\n", e);
-        }
-      } else if (message.type === "DISPATCH" && message.state) {
-        const jumpState = message.payload.type === "JUMP_TO_ACTION" || message.payload.type === "JUMP_TO_STATE";
-        const newState = api.getState();
-        newState[DEVTOOLS] = JSON.parse(message.state);
-        if (!api.dispatch && !jumpState) {
-          api.setState(newState);
-        } else if (jumpState) {
-          api.setState(newState[DEVTOOLS]);
-        } else {
-          savedSetState(newState);
-        }
-      } else if (message.type === "DISPATCH" && ((_a = message.payload) == null ? void 0 : _a.type) === "COMMIT") {
-        connection.init(api.getState());
-      } else if (message.type === "DISPATCH" && ((_b = message.payload) == null ? void 0 : _b.type) === "IMPORT_STATE") {
-        const actions = (_c = message.payload.nextLiftedState) == null ? void 0 : _c.actionsById;
-        const computedStates = ((_d = message.payload.nextLiftedState) == null ? void 0 : _d.computedStates) || [];
-        computedStates.forEach(({ state }, index) => {
-          const action = actions[index] || "No action found";
-          if (index === 0) {
-            connection.init(state);
-          } else {
-            savedSetState(state);
-            connection.send(action, api.getState());
-          }
-        });
-      }
-    });
-    connection.init(initialState);
-  }
-  return initialState;
 };
 const toThenable = (fn) => (input) => {
   try {
@@ -111,7 +160,7 @@ const toThenable = (fn) => (input) => {
     };
   }
 };
-const persist = (config, baseOptions) => (set, get, api) => {
+const persistImpl = (config, baseOptions) => (set, get, api) => {
   let options = __spreadValues({
     getStorage: () => localStorage,
     serialize: JSON.stringify,
@@ -120,12 +169,9 @@ const persist = (config, baseOptions) => (set, get, api) => {
     version: 0,
     merge: (persistedState, currentState) => __spreadValues(__spreadValues({}, currentState), persistedState)
   }, baseOptions);
-  if (options.blacklist || options.whitelist) {
-    console.warn(`The ${options.blacklist ? "blacklist" : "whitelist"} option is deprecated and will be removed in the next version. Please use the 'partialize' option instead.`);
-  }
   let hasHydrated = false;
-  const hydrationListeners = new Set();
-  const finishHydrationListeners = new Set();
+  const hydrationListeners = /* @__PURE__ */ new Set();
+  const finishHydrationListeners = /* @__PURE__ */ new Set();
   let storage;
   try {
     storage = options.getStorage();
@@ -136,21 +182,10 @@ const persist = (config, baseOptions) => (set, get, api) => {
       console.warn(`[zustand persist middleware] Unable to update item '${options.name}', the given storage is currently unavailable.`);
       set(...args);
     }, get, api);
-  } else if (!storage.removeItem) {
-    console.warn(`[zustand persist middleware] The given storage for item '${options.name}' does not contain a 'removeItem' method, which will be required in v4.`);
   }
   const thenableSerialize = toThenable(options.serialize);
   const setItem = () => {
     const state = options.partialize(__spreadValues({}, get()));
-    if (options.whitelist) {
-      Object.keys(state).forEach((key) => {
-        var _a;
-        !((_a = options.whitelist) == null ? void 0 : _a.includes(key)) && delete state[key];
-      });
-    }
-    if (options.blacklist) {
-      options.blacklist.forEach((key) => delete state[key]);
-    }
     let errorInSync;
     const thenable = thenableSerialize({ state, version: options.version }).then((serializedValue) => storage.setItem(options.name, serializedValue)).catch((e) => {
       errorInSync = e;
@@ -193,7 +228,8 @@ const persist = (config, baseOptions) => (set, get, api) => {
         }
       }
     }).then((migratedState) => {
-      stateFromStorage = options.merge(migratedState, configResult);
+      var _a2;
+      stateFromStorage = options.merge(migratedState, (_a2 = get()) != null ? _a2 : configResult);
       set(stateFromStorage, true);
       return setItem();
     }).then(() => {
@@ -212,8 +248,7 @@ const persist = (config, baseOptions) => (set, get, api) => {
       }
     },
     clearStorage: () => {
-      var _a;
-      (_a = storage == null ? void 0 : storage.removeItem) == null ? void 0 : _a.call(storage, options.name);
+      storage == null ? void 0 : storage.removeItem(options.name);
     },
     rehydrate: () => hydrate(),
     hasHydrated: () => hasHydrated,
@@ -233,5 +268,6 @@ const persist = (config, baseOptions) => (set, get, api) => {
   hydrate();
   return stateFromStorage || configResult;
 };
+const persist = persistImpl;
 
 export { devtools, persist };

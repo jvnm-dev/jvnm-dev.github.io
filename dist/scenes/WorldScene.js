@@ -10,8 +10,18 @@ import {
   removeObject
 } from "../utils/object.js";
 import {playClick} from "../utils/audio.js";
-import {getCurrentPlayerTile, getStartPosition} from "../utils/map.js";
-import {isUIOpen, openMenu, triggerUIDown, triggerUIUp} from "../utils/ui.js";
+import {getStartPosition, savePlayerPosition} from "../utils/map.js";
+import {
+  isMenuOpen,
+  isUIOpen,
+  toggleMenu,
+  triggerUIDown,
+  triggerUIExit,
+  triggerUILeft,
+  triggerUINextStep,
+  triggerUIRight,
+  triggerUIUp
+} from "../utils/ui.js";
 import {useUserDataStore} from "../stores/userData.js";
 import {useUIStore} from "../stores/ui.js";
 export default class WorldScene extends Phaser.Scene {
@@ -40,11 +50,12 @@ export default class WorldScene extends Phaser.Scene {
   }
   initializeTilemap() {
     this.tilemap = this.make.tilemap({key: this.map});
-    const all_tilesets = Object.values(Tilesets).map((tileset) => {
-      if (this.tilemap.tilesets.find(({name}) => name === tileset)) {
-        return this.tilemap.addTilesetImage(tileset);
+    const all_tilesets = Object.values(Tilesets).reduce((acc, value) => {
+      if (this.tilemap.tilesets.find(({name}) => name === value)) {
+        acc = [...acc, this.tilemap.addTilesetImage(value)];
       }
-    }).filter(Boolean);
+      return acc;
+    }, []);
     Object.values(Layers).filter((layer) => layer !== Layers.OBJECTS).forEach((layer) => {
       this.tilemap.createLayer(layer, all_tilesets);
     });
@@ -71,7 +82,7 @@ export default class WorldScene extends Phaser.Scene {
     });
   }
   initializeGrid() {
-    const {startPosition, facingDirection} = getStartPosition(this);
+    const {startPosition, facingDirection} = getStartPosition(this) ?? {};
     const gridEngineConfig = {
       collisionTilePropertyName: "collides",
       characters: [
@@ -106,9 +117,17 @@ export default class WorldScene extends Phaser.Scene {
         case "E":
           handleClickOnObject(this);
           break;
+        case "ENTER":
+          playClick(this);
+          triggerUINextStep();
+          break;
         case "ESCAPE":
           playClick(this);
-          openMenu();
+          if (!isMenuOpen()) {
+            toggleMenu();
+          } else {
+            triggerUIExit();
+          }
           break;
         case " ":
           handleBicycle(this);
@@ -125,26 +144,24 @@ export default class WorldScene extends Phaser.Scene {
             triggerUIUp();
           }
           break;
+        case "ARROWLEFT":
+          if (isOpen) {
+            playClick(this);
+            triggerUILeft();
+          }
+          break;
+        case "ARROWRIGHT":
+          if (isOpen) {
+            playClick(this);
+            triggerUIRight();
+          }
+          break;
       }
     });
   }
   listenMoves() {
     const cursors = this.input.keyboard.createCursorKeys();
     const keys = this.input.keyboard.addKeys("W,S,A,D");
-    const userData = useUserDataStore.getState();
-    if (!this.gridEngine.isMoving(Sprites.PLAYER)) {
-      const currentTile = getCurrentPlayerTile(this);
-      if (currentTile && (userData.position?.x !== currentTile.x || userData.position?.y !== currentTile.y || userData.position?.map !== this.map)) {
-        userData.update({
-          position: {
-            x: currentTile.x,
-            y: currentTile.y,
-            map: this.map,
-            facingDirection: this.gridEngine.getFacingDirection(Sprites.PLAYER)
-          }
-        });
-      }
-    }
     if (cursors.left.isDown || keys.A.isDown) {
       this.gridEngine.move(Sprites.PLAYER, Direction.LEFT);
     } else if (cursors.right.isDown || keys.D.isDown) {
@@ -154,6 +171,7 @@ export default class WorldScene extends Phaser.Scene {
     } else if (cursors.down.isDown || keys.S.isDown) {
       this.gridEngine.move(Sprites.PLAYER, Direction.DOWN);
     }
+    savePlayerPosition(this);
   }
   applyUserDataBeforeRender() {
     const position = useUserDataStore.getState().position;

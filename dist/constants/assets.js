@@ -33,6 +33,7 @@ export var Objects;
   Objects2["DIALOG"] = "dialog";
   Objects2["POKEBALL"] = "pokeball";
   Objects2["POKEDEX"] = "pokedex";
+  Objects2["GRASS"] = "grass";
 })(Objects || (Objects = {}));
 export var AssetExtension;
 (function(AssetExtension2) {
@@ -47,4 +48,5 @@ export var Audios;
   Audios2["CLICK"] = "click";
   Audios2["BICYCLE"] = "bicycle";
   Audios2["GAIN"] = "gain";
+  Audios2["BATTLE"] = "battle";
 })(Audios || (Audios = {}));

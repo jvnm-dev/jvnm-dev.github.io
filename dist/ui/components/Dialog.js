@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from "../../../web_modules/react.js";
 import {UIEvents} from "../../constants/events.js";
 import {useUIStore} from "../../stores/ui.js";
+import {useEventsListeners} from "../../utils/events.js";
 const defaultState = {
   steps: [],
   currentStepIndex: 0
@@ -21,13 +22,15 @@ export const Dialog = () => {
         currentStepIndex: nextStepIndex
       });
     } else {
-      store.toggleDialog();
+      store.closeDialog();
     }
   };
-  useEffect(() => {
-    window.addEventListener(UIEvents.NEXT_STEP, triggerNextStep);
-    () => window.removeEventListener(UIEvents.NEXT_STEP, triggerNextStep);
-  }, []);
+  useEventsListeners([
+    {
+      name: UIEvents.NEXT_STEP,
+      callback: triggerNextStep
+    }
+  ], []);
   useEffect(() => {
     const {isOpen, content} = store.dialog;
     if (!isOpen) {
@@ -36,7 +39,7 @@ export const Dialog = () => {
     if (isOpen) {
       setState({
         ...state,
-        steps: content.split(";")
+        steps: content?.split(";") ?? []
       });
     }
   }, [store.dialog]);

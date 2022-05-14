@@ -1,0 +1,28 @@
+import React from "../../../web_modules/react.js";
+import {useEventsListeners} from "../../utils/events.js";
+import {Audios} from "../../constants/assets.js";
+import {UIEvents} from "../../constants/events.js";
+import {useUIStore} from "../../stores/ui.js";
+import {getAudioConfig} from "../../utils/audio.js";
+export const Battle = ({game}) => {
+  const UIStore = useUIStore();
+  useEventsListeners([
+    {
+      name: UIEvents.EXIT,
+      callback: () => {
+        if (UIStore.battle.isOpen) {
+          game.sound.stopAll();
+          game.sound.play(Audios.MUSIC, getAudioConfig());
+          game.scene.stop("Battle").start("World");
+          useUIStore.getState().toggleBattle();
+        }
+      }
+    }
+  ], [UIStore.battle.isOpen]);
+  return /* @__PURE__ */ React.createElement("div", {
+    className: "battle_menu",
+    style: {
+      display: UIStore.battle.isOpen ? "block" : "none"
+    }
+  }, /* @__PURE__ */ React.createElement("h1", null, "Test"));
+};

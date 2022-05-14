@@ -1,19 +1,16 @@
 import {Audios, Layers, Objects, Sprites} from "../constants/assets.js";
 import {TILE_SIZE} from "../constants/game.js";
-import {getCurrentPlayerTile} from "./map.js";
+import {getCurrentPlayerTile, savePlayerPosition} from "./map.js";
 import {getAudioConfig, playClick} from "./audio.js";
 import {Direction} from "../../web_modules/grid-engine.js";
-import {
-  isDialogOpen,
-  isUIOpen,
-  openDialog,
-  triggerUINextStep
-} from "./ui.js";
+import {isDialogOpen, isUIOpen, openDialog, triggerUINextStep} from "./ui.js";
 import {useUserDataStore} from "../stores/userData.js";
+import pokemons from "../constants/pokemons.json.proxy.js";
+import {getRandomPokemonFromZone} from "./pokemon.js";
 export const convertObjectPositionToTilePosition = (object) => ({
   ...object,
-  x: ~~(object.x / TILE_SIZE),
-  y: ~~(object.y / TILE_SIZE)
+  x: ~~((object?.x ?? 0) / TILE_SIZE),
+  y: ~~((object?.y ?? 0) / TILE_SIZE)
 });
 export const findObjectByPosition = (scene, position) => {
   const {tilemap} = scene;
@@ -22,6 +19,9 @@ export const findObjectByPosition = (scene, position) => {
 };
 export const getObjectUnderPlayer = (scene) => {
   const currentTile = getCurrentPlayerTile(scene);
+  if (!currentTile) {
+    return;
+  }
   const playerPosition = {
     x: currentTile?.x,
     y: currentTile?.y
@@ -50,7 +50,11 @@ export const getTiledObjectProperty = (name, object) => {
   return object.properties?.find((property) => property.name === name)?.value;
 };
 export const removeObject = (scene, object) => {
-  const removeTile = (layer) => scene.tilemap.removeTileAt(object.x, object.y, false, false, layer);
+  const removeTile = (layer) => {
+    if (object.x && object.y) {
+      return scene.tilemap.removeTileAt(object.x, object.y, false, false, layer);
+    }
+  };
   let removedTile = removeTile(Layers.WORLD2);
   if (removedTile?.index === -1) {
     removedTile = removeTile(Layers.WORLD);
@@ -63,14 +67,18 @@ export const removeObject = (scene, object) => {
 };
 export const getSpawn = (scene) => {
   const spawnPoint = scene.tilemap.findObject(Layers.OBJECTS, (obj) => obj.name === Objects.SPAWN);
-  const facingDirection = spawnPoint.properties?.find(({name}) => name === "spriteDirection")?.value;
-  return {
-    startPosition: {
-      x: Math.floor(spawnPoint.x / TILE_SIZE),
-      y: Math.floor(spawnPoint.y / TILE_SIZE)
-    },
-    facingDirection
-  };
+  if (spawnPoint?.x && spawnPoint?.y) {
+    const facingDirection = spawnPoint.properties?.find((property) => property.name === "spriteDirection")?.value;
+    return {
+      startPosition: {
+        x: Math.floor(spawnPoint.x / TILE_SIZE),
+        y: Math.floor(spawnPoint.y / TILE_SIZE)
+      },
+      facingDirection
+    };
+  } else {
+    console.error("No spawn point set or no position detected");
+  }
 };
 export const handleClickOnObject = (scene) => {
   if (isDialogOpen()) {
@@ -94,6 +102,11 @@ export const handleOverlappableObject = (scene, object) => {
     case Objects.DOOR:
       handleDoor(scene, object);
       break;
+    case Objects.GRASS:
+      if (scene.gridEngine.isMoving(Sprites.PLAYER)) {
+        handleMoveOnGrass(scene, object);
+      }
+      break;
   }
 };
 export const handleDoor = (scene, door) => {
@@ -114,19 +127,64 @@ export const handleDoor = (scene, door) => {
   scene.sound.play(Audios.DOOR, getAudioConfig(0.5, false));
   scene.scene.restart({startPosition: {x, y}});
 };
+export const handleMoveOnGrass = (scene, grass) => {
+  const min = 0;
+  const max = 300;
+  const userData = useUserDataStore.getState();
+  const randomNumber = Math.floor(Math.random() * (max - min + 1) + min);
+  if (grass.x && grass.y) {
+    const tile = scene.tilemap.getTileAtWorldXY(grass.x * 48, grass.y * 48, false, scene.cameras.main, "below_player");
+    if (tile) {
+      tile.tint = 11184810;
+      setTimeout(() => {
+        if (tile) {
+          tile.tint = 16777215;
+        }
+      }, 300);
+      if (!userData.pokemons?.length) {
+        openDialog("You don't have any pokemon. It's not safe to walk on grass.");
+        return;
+      }
+      if (randomNumber === max / 2 && scene.gridEngine.isMoving(Sprites.PLAYER)) {
+        scene.gridEngine.stopMovement(Sprites.PLAYER);
+        scene.gridEngine.setSpeed(Sprites.PLAYER, 0);
+        const battleStarted = scene.data.get("battleStarted");
+        if (!battleStarted) {
+          const pokemon = getRandomPokemonFromZone(Number(grass.properties.find((property) => property.name === "id")?.value));
+          scene.sound.stopAll();
+          scene.sound.play(Audios.BATTLE, getAudioConfig());
+          scene.data.set("battleStarted", true);
+          scene.cameras.main.shake(1500, 0.01);
+          scene.time.delayedCall(1500, () => {
+            scene.cameras.main.fadeOut(200);
+          });
+          scene.time.delayedCall(2e3, () => {
+            savePlayerPosition(scene);
+            scene.data.remove("battleStarted");
+            scene.scene.stop("World").start("Battle", {
+              pokemon
+            });
+          });
+        }
+      }
+    }
+  }
+};
 export const handleDialogObject = (dialog) => {
-  const content = dialog.properties.find(({name}) => name === "content")?.value;
+  const content = dialog.properties.find((property) => property.name === "content")?.value;
   if (content) {
     openDialog(content);
   }
 };
 export const handlePokeball = (scene, pokeball) => {
-  const pokemonInside = pokeball.properties.find(({name}) => name === "pokemon_inside")?.value;
+  const pokemonInside = pokeball.properties.find((property) => property.name === "pokemon_inside")?.value;
   removeObject(scene, pokeball);
   useUserDataStore.getState().addObjectToInventory(pokeball.id);
   if (pokemonInside) {
+    const pokemon = pokemons[pokemonInside - 1];
+    useUserDataStore.getState().addPokemon(pokemon.id);
     scene.sound.play(Audios.GAIN, getAudioConfig(0.1, false));
-    openDialog(`You found a <span class="gain">${pokemonInside}</span> inside this pokeball!`);
+    openDialog(`You found a <span class="gain">${pokemon.name}</span> inside this pokeball!`);
   }
 };
 export const handleBicycle = (scene) => {
@@ -136,7 +194,7 @@ export const handleBicycle = (scene) => {
   }
   const userData = useUserDataStore.getState();
   const mapProperties = scene.tilemap.properties;
-  const isIndoor = mapProperties.find && mapProperties.find(({name}) => name === "indoor");
+  const isIndoor = mapProperties.find && mapProperties.find((property) => property.name === "indoor");
   if (isUIOpen()) {
     return;
   }
@@ -150,6 +208,9 @@ export const handleBicycle = (scene) => {
     scene.sound.play(Audios.BICYCLE, getAudioConfig(0.5, false));
   }
   const tile = getCurrentPlayerTile(scene);
+  if (!tile) {
+    return;
+  }
   userData.update({
     onBicycle: !onBicycle
   });
