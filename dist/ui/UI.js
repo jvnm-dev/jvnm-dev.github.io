@@ -5,9 +5,11 @@ import {useWindowSize} from "./hooks/useWindowSize.js";
 import {Menu} from "./components/Menu.js";
 import {Dialog} from "./components/Dialog.js";
 import {Battle} from "./components/Battle.js";
+import {useUserDataStore} from "../stores/userData.js";
 export const UI = ({game}) => {
   const [size, setSize] = useState({width: 0, height: 0});
   const windowSize = useWindowSize();
+  const userData = useUserDataStore();
   useUIStore();
   useEffect(() => {
     const canvas = document.getElementsByTagName("canvas")?.[0];

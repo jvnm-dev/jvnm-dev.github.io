@@ -2,6 +2,7 @@ export var Sprites;
 (function(Sprites2) {
   Sprites2["PLAYER"] = "player";
   Sprites2["BICYCLE"] = "bicycle";
+  Sprites2["CHEN"] = "chen";
 })(Sprites || (Sprites = {}));
 export var Tilesets;
 (function(Tilesets2) {
@@ -10,6 +11,14 @@ export var Tilesets;
   Tilesets2["WORLD2"] = "world2";
   Tilesets2["INSIDE"] = "inside";
   Tilesets2["GROUNDS_INSIDE"] = "grounds_inside";
+  Tilesets2["INSIDE_ONE"] = "inside_one";
+  Tilesets2["INSIDE_TWO"] = "inside_two";
+  Tilesets2["INSIDE_THREE"] = "inside_three";
+  Tilesets2["INSIDE_FOUR"] = "inside_four";
+  Tilesets2["INSIDE_FIVE"] = "inside_five";
+  Tilesets2["INSIDE_SIX"] = "inside_six";
+  Tilesets2["INSIDE_SEVEN"] = "inside_seven";
+  Tilesets2["INSIDE_EIGHT"] = "inside_eight";
 })(Tilesets || (Tilesets = {}));
 export var Maps;
 (function(Maps2) {
@@ -21,6 +30,7 @@ export var Maps;
 export var Layers;
 (function(Layers2) {
   Layers2["BELOW_PLAYER"] = "below_player";
+  Layers2["BELOW_PLAYER2"] = "below_player2";
   Layers2["WORLD"] = "world";
   Layers2["WORLD2"] = "world2";
   Layers2["ABOVE_PLAYER"] = "above_player";

@@ -7,6 +7,7 @@ import {isDialogOpen, isUIOpen, openDialog, triggerUINextStep} from "./ui.js";
 import {useUserDataStore} from "../stores/userData.js";
 import pokemons from "../constants/pokemons.json.proxy.js";
 import {getRandomPokemonFromZone} from "./pokemon.js";
+import {getRandomNumber} from "./number.js";
 export const convertObjectPositionToTilePosition = (object) => ({
   ...object,
   x: ~~((object?.x ?? 0) / TILE_SIZE),
@@ -103,9 +104,7 @@ export const handleOverlappableObject = (scene, object) => {
       handleDoor(scene, object);
       break;
     case Objects.GRASS:
-      if (scene.gridEngine.isMoving(Sprites.PLAYER)) {
-        handleMoveOnGrass(scene, object);
-      }
+      handleMoveOnGrass(scene, object);
       break;
   }
 };
@@ -129,9 +128,9 @@ export const handleDoor = (scene, door) => {
 };
 export const handleMoveOnGrass = (scene, grass) => {
   const min = 0;
-  const max = 300;
+  const max = 10;
   const userData = useUserDataStore.getState();
-  const randomNumber = Math.floor(Math.random() * (max - min + 1) + min);
+  const randomNumber = getRandomNumber(min, max);
   if (grass.x && grass.y) {
     const tile = scene.tilemap.getTileAtWorldXY(grass.x * 48, grass.y * 48, false, scene.cameras.main, "below_player");
     if (tile) {
@@ -142,10 +141,28 @@ export const handleMoveOnGrass = (scene, grass) => {
         }
       }, 300);
       if (!userData.pokemons?.length) {
+        scene.gridEngine.stopMovement(Sprites.PLAYER);
+        const newPosition = {
+          x: userData.position?.x ?? 0,
+          y: userData.position?.y ?? 0
+        };
+        if (userData.position?.facingDirection === Direction.UP) {
+          newPosition.y += 1;
+        }
+        if (userData.position?.facingDirection === Direction.DOWN) {
+          newPosition.y -= 1;
+        }
+        if (userData.position?.facingDirection === Direction.LEFT) {
+          newPosition.x += 1;
+        }
+        if (userData.position?.facingDirection === Direction.RIGHT) {
+          newPosition.x -= 1;
+        }
+        scene.gridEngine.moveTo(Sprites.PLAYER, newPosition);
         openDialog("You don't have any pokemon. It's not safe to walk on grass.");
         return;
       }
-      if (randomNumber === max / 2 && scene.gridEngine.isMoving(Sprites.PLAYER)) {
+      if (randomNumber === max / 2) {
         scene.gridEngine.stopMovement(Sprites.PLAYER);
         scene.gridEngine.setSpeed(Sprites.PLAYER, 0);
         const battleStarted = scene.data.get("battleStarted");
@@ -160,7 +177,8 @@ export const handleMoveOnGrass = (scene, grass) => {
           });
           scene.time.delayedCall(2e3, () => {
             savePlayerPosition(scene);
-            scene.data.remove("battleStarted");
+            scene.data.reset();
+            scene.receivedData = {};
             scene.scene.stop("World").start("Battle", {
               pokemon
             });
@@ -221,4 +239,28 @@ export const handleBicycle = (scene) => {
     },
     facingDirection: scene.gridEngine.getFacingDirection(Sprites.PLAYER)
   });
+};
+export const getNPCs = (scene) => {
+  const objects = scene.tilemap.getObjectLayer(Layers.OBJECTS).objects.map((object) => convertObjectPositionToTilePosition(object));
+  return objects.filter((object) => object.name === "npc");
+};
+export const spawnNPC = (scene) => {
+  const NPCs = getNPCs(scene);
+  if (NPCs.length) {
+    NPCs.forEach((npc) => {
+      const name = getTiledObjectProperty("name", npc);
+      console.log(npc);
+      const sprite = scene.add.sprite(0, 0, name);
+      sprite.setOrigin(0.5, 0.5);
+      sprite.setDepth(1);
+      sprite.setScale(1.25);
+      scene.gridEngine.addCharacter({
+        id: name,
+        sprite,
+        walkingAnimationMapping: 0,
+        startPosition: {x: npc.x, y: npc.y},
+        speed: 5
+      });
+    });
+  }
 };

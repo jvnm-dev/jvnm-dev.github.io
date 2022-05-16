@@ -7,7 +7,8 @@ import {
   handleBicycle,
   handleClickOnObject,
   handleOverlappableObject,
-  removeObject
+  removeObject,
+  spawnNPC
 } from "../utils/object.js";
 import {playClick} from "../utils/audio.js";
 import {getStartPosition, savePlayerPosition} from "../utils/map.js";
@@ -38,15 +39,21 @@ export default class WorldScene extends Phaser.Scene {
     this.initializePlayer();
     this.initializeCamera();
     this.initializeGrid();
+    this.initializeNPCs();
     this.listenKeyboardControl();
     this.applyUserDataAfterRender();
+    this.gridEngine.positionChangeFinished().subscribe((observer) => {
+      if (observer.charId === Sprites.PLAYER) {
+        savePlayerPosition(this);
+        this.handleObjectsOverlap();
+      }
+    });
   }
   update() {
     if (isUIOpen()) {
       return;
     }
     this.listenMoves();
-    this.handleObjectsOverlap();
   }
   initializeTilemap() {
     this.tilemap = this.make.tilemap({key: this.map});
@@ -80,6 +87,8 @@ export default class WorldScene extends Phaser.Scene {
         sprite.destroy();
       }
     });
+    this.player = player;
+    this.bicycle = bicycle;
   }
   initializeGrid() {
     const {startPosition, facingDirection} = getStartPosition(this) ?? {};
@@ -106,6 +115,9 @@ export default class WorldScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.currentSprite, true);
     this.cameras.main.setFollowOffset(-this.currentSprite.width, -this.currentSprite.height);
   }
+  initializeNPCs() {
+    spawnNPC(this);
+  }
   listenKeyboardControl() {
     this.input.keyboard.on("keyup", (event) => {
       const uiStore = useUIStore.getState();
@@ -114,12 +126,14 @@ export default class WorldScene extends Phaser.Scene {
         case "M":
           this.sound.mute = !this.sound.mute;
           break;
-        case "E":
-          handleClickOnObject(this);
-          break;
         case "ENTER":
-          playClick(this);
-          triggerUINextStep();
+        case "E":
+          if (isUIOpen()) {
+            playClick(this);
+            triggerUINextStep();
+          } else {
+            handleClickOnObject(this);
+          }
           break;
         case "ESCAPE":
           playClick(this);
@@ -130,7 +144,12 @@ export default class WorldScene extends Phaser.Scene {
           }
           break;
         case " ":
-          handleBicycle(this);
+          if (isUIOpen()) {
+            playClick(this);
+            triggerUINextStep();
+          } else {
+            handleBicycle(this);
+          }
           break;
         case "ARROWDOWN":
           if (isOpen) {
@@ -162,16 +181,17 @@ export default class WorldScene extends Phaser.Scene {
   listenMoves() {
     const cursors = this.input.keyboard.createCursorKeys();
     const keys = this.input.keyboard.addKeys("W,S,A,D");
-    if (cursors.left.isDown || keys.A.isDown) {
-      this.gridEngine.move(Sprites.PLAYER, Direction.LEFT);
-    } else if (cursors.right.isDown || keys.D.isDown) {
-      this.gridEngine.move(Sprites.PLAYER, Direction.RIGHT);
-    } else if (cursors.up.isDown || keys.W.isDown) {
-      this.gridEngine.move(Sprites.PLAYER, Direction.UP);
-    } else if (cursors.down.isDown || keys.S.isDown) {
-      this.gridEngine.move(Sprites.PLAYER, Direction.DOWN);
+    if (!isUIOpen() && !this.gridEngine.isMoving(Sprites.PLAYER)) {
+      if (cursors.left.isDown || keys.A.isDown) {
+        this.gridEngine.move(Sprites.PLAYER, Direction.LEFT);
+      } else if (cursors.right.isDown || keys.D.isDown) {
+        this.gridEngine.move(Sprites.PLAYER, Direction.RIGHT);
+      } else if (cursors.up.isDown || keys.W.isDown) {
+        this.gridEngine.move(Sprites.PLAYER, Direction.UP);
+      } else if (cursors.down.isDown || keys.S.isDown) {
+        this.gridEngine.move(Sprites.PLAYER, Direction.DOWN);
+      }
     }
-    savePlayerPosition(this);
   }
   applyUserDataBeforeRender() {
     const position = useUserDataStore.getState().position;

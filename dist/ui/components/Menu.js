@@ -33,7 +33,7 @@ export const Menu = () => {
     }
   };
   const selectOption = () => {
-    if (store.menu.isOpen && !selected) {
+    if (store.menu.isOpen && !selected && !store.dialog.isOpen) {
       if ([Options.POKEDEX, Options.BAG, Options.TEAM, Options.YOU].includes(hovered)) {
         openDialog("This feature is not ready yet.");
         return;

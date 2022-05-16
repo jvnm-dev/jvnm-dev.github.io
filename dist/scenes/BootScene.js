@@ -75,9 +75,11 @@ export default class BootScene extends Phaser.Scene {
     this.load.image("trainer_back", "assets/images/battle/trainer.png");
     Array.from({length: 151}, (_, i) => {
       this.load.image(`pokemon_${i + 1}_front`, `assets/images/pokemons/front/${i + 1}.png`);
+      this.load.image(`pokemon_${i + 1}_front_shiny`, `assets/images/pokemons/front/shiny/${i + 1}.png`);
     });
     Array.from({length: 151}, (_, i) => {
       this.load.image(`pokemon_${i + 1}_back`, `assets/images/pokemons/back/${i + 1}.png`);
+      this.load.image(`pokemon_${i + 1}_back_shiny`, `assets/images/pokemons/back/shiny/${i + 1}.png`);
     });
     Object.values(Tilesets).forEach((tileset) => {
       this.load.image(tileset, `assets/images/tilesets/${tileset}.png`);
@@ -86,6 +88,7 @@ export default class BootScene extends Phaser.Scene {
       this.load.audio(audio, `assets/audio/${audio}.ogg`);
     });
     this.load.image("object_pokeball", "assets/images/objects/pokeball.png");
+    this.load.image("object_star", "assets/images/objects/star.png");
   }
   loadMaps() {
     const maps = Object.values(Maps);
@@ -99,6 +102,10 @@ export default class BootScene extends Phaser.Scene {
       frameHeight: PLAYER_SIZE
     });
     this.load.spritesheet(Sprites.BICYCLE, "assets/images/characters/bicycle.png", {
+      frameWidth: PLAYER_SIZE,
+      frameHeight: PLAYER_SIZE
+    });
+    this.load.spritesheet(Sprites.CHEN, "assets/images/characters/chen.png", {
       frameWidth: PLAYER_SIZE,
       frameHeight: PLAYER_SIZE
     });

@@ -9,13 +9,16 @@ import {
   triggerUIRight
 } from "../utils/ui.js";
 import {useUserDataStore} from "../stores/userData.js";
+import {getRandomNumber} from "../utils/number.js";
 export default class BattleScene extends Phaser.Scene {
   constructor() {
     super("Battle");
     this.ennemyPokemon = {};
+    this.isShiny = false;
   }
   init(data) {
     this.ennemyPokemon.data = data.pokemon;
+    this.isShiny = getRandomNumber(0, 1024) === 0;
   }
   create() {
     const background = this.add.image(this.scale.width / 2, this.scale.height / 2, "battle_background");
@@ -33,12 +36,12 @@ export default class BattleScene extends Phaser.Scene {
     this.trainerBack.scaleX = this.trainerBack.scaleY;
     this.trainerBack.y = Number(this.game.config.height) / 1.9;
     this.trainerBack.x = 0;
-    this.ennemyPokemon.image = this.add.image(this.scale.width / 2, this.scale.height / 2, `pokemon_${this.ennemyPokemon.data.id}_front`);
+    this.ennemyPokemon.image = this.add.image(this.scale.width / 2, this.scale.height / 2, `pokemon_${this.ennemyPokemon.data.id}_front${this.isShiny ? "_shiny" : ""}`);
     this.ennemyPokemon.image.displayHeight = Number(this.game.config.height) / 4;
     this.ennemyPokemon.image.scaleX = this.ennemyPokemon.image.scaleY;
     this.ennemyPokemon.image.y = Number(this.game.config.height) / 3.5;
     this.ennemyPokemon.image.x = Number(this.game.config.width);
-    this.ennemyPokemon.image.tint = 0;
+    this.ennemyPokemon.image.tint = 4473924;
     const positionTransitionDelay = 1e3;
     this.tweens.add({
       targets: this.trainerBack,
@@ -57,7 +60,29 @@ export default class BattleScene extends Phaser.Scene {
     useUIStore.getState().toggleBattle();
     this.time.delayedCall(positionTransitionDelay, () => {
       if (this.ennemyPokemon.image) {
+        this.ennemyPokemon.image.setDepth(99);
         this.ennemyPokemon.image.tint = 16777215;
+        if (this.isShiny) {
+          const zoneLimit = new Phaser.Geom.Circle(0, 0, Number(this.game.config.height));
+          const stars = this.add.particles("object_star");
+          stars.setScale(0.1);
+          stars.setPosition(Number(this.game.config.width) / 1.5, Number(this.game.config.height) / 4);
+          stars.createEmitter({
+            maxParticles: 4,
+            x: this.ennemyPokemon.image.x / (this.ennemyPokemon.image.width / 2),
+            y: this.ennemyPokemon.image.y / (this.ennemyPokemon.image.height / 2),
+            scale: {start: 0.8, end: 0},
+            lifespan: 500,
+            frequency: 250,
+            speed: 200,
+            gravityY: -50,
+            angle: {min: 180, max: 360},
+            emitZone: {type: "random", source: zoneLimit}
+          });
+          this.time.delayedCall(1500, () => {
+            stars.destroy();
+          });
+        }
       }
     });
     const playerGoBackOutOfScreenDelay = positionTransitionDelay + 500;
