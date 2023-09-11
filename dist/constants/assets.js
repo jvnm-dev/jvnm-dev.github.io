@@ -40,6 +40,7 @@ export var Objects;
 (function(Objects2) {
   Objects2["SPAWN"] = "spawn";
   Objects2["DOOR"] = "door";
+  Objects2["NPC"] = "npc";
   Objects2["DIALOG"] = "dialog";
   Objects2["POKEBALL"] = "pokeball";
   Objects2["POKEDEX"] = "pokedex";

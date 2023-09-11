@@ -1,13 +1,13 @@
 import {Audios, Layers, Objects, Sprites} from "../constants/assets.js";
 import {TILE_SIZE} from "../constants/game.js";
-import {getCurrentPlayerTile, savePlayerPosition} from "./map.js";
+import {getCurrentPlayerTile} from "./map.js";
 import {getAudioConfig, playClick} from "./audio.js";
-import {Direction} from "../../web_modules/grid-engine.js";
+import {Direction} from "../../_snowpack/pkg/grid-engine.js";
 import {isDialogOpen, isUIOpen, openDialog, triggerUINextStep} from "./ui.js";
 import {useUserDataStore} from "../stores/userData.js";
+import {getRandomNumber} from "./number.js";
 import pokemons from "../constants/pokemons.json.proxy.js";
 import {getRandomPokemonFromZone} from "./pokemon.js";
-import {getRandomNumber} from "./number.js";
 export const convertObjectPositionToTilePosition = (object) => ({
   ...object,
   x: ~~((object?.x ?? 0) / TILE_SIZE),
@@ -15,8 +15,8 @@ export const convertObjectPositionToTilePosition = (object) => ({
 });
 export const findObjectByPosition = (scene, position) => {
   const {tilemap} = scene;
-  const objects = tilemap.getObjectLayer(Layers.OBJECTS).objects.map((object) => convertObjectPositionToTilePosition(object));
-  return objects.find((object) => object.x === position.x && object.y === position.y);
+  const objects = tilemap.getObjectLayer(Layers.OBJECTS)?.objects.map((object) => convertObjectPositionToTilePosition(object));
+  return objects?.find((object) => object.x === position.x && object.y === position.y);
 };
 export const getObjectUnderPlayer = (scene) => {
   const currentTile = getCurrentPlayerTile(scene);
@@ -32,7 +32,7 @@ export const getObjectUnderPlayer = (scene) => {
 export const getObjectLookedAt = (scene) => {
   const currentTile = getCurrentPlayerTile(scene);
   const facingDirection = scene.gridEngine.getFacingDirection(Sprites.PLAYER);
-  const lookingPosition = {
+  let lookingPosition = {
     x: currentTile?.x ?? 0,
     y: currentTile?.y ?? 0
   };
@@ -81,11 +81,7 @@ export const getSpawn = (scene) => {
     console.error("No spawn point set or no position detected");
   }
 };
-export const handleClickOnObject = (scene) => {
-  if (isDialogOpen()) {
-    playClick(scene);
-    return triggerUINextStep();
-  }
+export const handleClickOnObjectIfAny = (scene) => {
   const object = getObjectLookedAt(scene);
   if (object) {
     playClick(scene);
@@ -95,6 +91,10 @@ export const handleClickOnObject = (scene) => {
         break;
       case Objects.POKEBALL:
         handlePokeball(scene, object);
+        break;
+      case Objects.NPC:
+        handleNPC(scene, object);
+        break;
     }
   }
 };
@@ -132,14 +132,21 @@ export const handleMoveOnGrass = (scene, grass) => {
   const userData = useUserDataStore.getState();
   const randomNumber = getRandomNumber(min, max);
   if (grass.x && grass.y) {
-    const tile = scene.tilemap.getTileAtWorldXY(grass.x * 48, grass.y * 48, false, scene.cameras.main, "below_player");
+    const realX = grass.x * 48;
+    const realY = grass.y * 48;
+    const tile = scene.tilemap.getTileAtWorldXY(realX, realY, false, scene.cameras.main, "below_player");
     if (tile) {
-      tile.tint = 11184810;
-      setTimeout(() => {
-        if (tile) {
-          tile.tint = 16777215;
-        }
-      }, 300);
+      const starsEmitter = scene.add.particles(realX + 24, realY + 24, "object_star", {
+        speed: 50,
+        lifespan: 500,
+        scale: {start: 0.02, end: 0.01},
+        emitting: false,
+        duration: 100,
+        tintFill: true,
+        tint: 3706928
+      });
+      starsEmitter.setDepth(1);
+      starsEmitter.explode(10);
       if (!userData.pokemons?.length) {
         scene.gridEngine.stopMovement(Sprites.PLAYER);
         const newPosition = {
@@ -176,7 +183,6 @@ export const handleMoveOnGrass = (scene, grass) => {
             scene.cameras.main.fadeOut(200);
           });
           scene.time.delayedCall(2e3, () => {
-            savePlayerPosition(scene);
             scene.data.reset();
             scene.receivedData = {};
             scene.scene.stop("World").start("Battle", {
@@ -241,15 +247,16 @@ export const handleBicycle = (scene) => {
   });
 };
 export const getNPCs = (scene) => {
-  const objects = scene.tilemap.getObjectLayer(Layers.OBJECTS).objects.map((object) => convertObjectPositionToTilePosition(object));
-  return objects.filter((object) => object.name === "npc");
+  const objects = scene.tilemap.getObjectLayer(Layers.OBJECTS)?.objects.map((object) => convertObjectPositionToTilePosition(object));
+  return objects?.filter((object) => object.name === "npc") ?? [];
 };
 export const spawnNPC = (scene) => {
   const NPCs = getNPCs(scene);
   if (NPCs.length) {
     NPCs.forEach((npc) => {
       const name = getTiledObjectProperty("name", npc);
-      console.log(npc);
+      const x = getTiledObjectProperty("x", npc);
+      const y = getTiledObjectProperty("y", npc);
       const sprite = scene.add.sprite(0, 0, name);
       sprite.setOrigin(0.5, 0.5);
       sprite.setDepth(1);
@@ -258,9 +265,15 @@ export const spawnNPC = (scene) => {
         id: name,
         sprite,
         walkingAnimationMapping: 0,
-        startPosition: {x: npc.x, y: npc.y},
+        startPosition: {x, y},
         speed: 5
       });
     });
+  }
+};
+export const handleNPC = (scene, npc) => {
+  if (!isDialogOpen()) {
+    const name = getTiledObjectProperty("name", npc);
+    openDialog(`Hello, I'm ${name}!`);
   }
 };

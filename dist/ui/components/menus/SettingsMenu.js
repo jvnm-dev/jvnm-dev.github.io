@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from "../../../../web_modules/react.js";
-import capitalize from "../../../../web_modules/lodash/capitalize.js";
+import React, {useState, useEffect} from "../../../../_snowpack/pkg/react.js";
+import capitalize from "../../../../_snowpack/pkg/lodash/capitalize.js";
 import {useEventsListeners} from "../../../utils/events.js";
 import {UIEvents} from "../../../constants/events.js";
 import {useUIStore} from "../../../stores/ui.js";

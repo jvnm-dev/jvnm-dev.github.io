@@ -1,3 +1,4 @@
+import {Scene} from "../../_snowpack/pkg/phaser.js";
 import {playClick} from "../utils/audio.js";
 import {useUIStore} from "../stores/ui.js";
 import {
@@ -10,7 +11,7 @@ import {
 } from "../utils/ui.js";
 import {useUserDataStore} from "../stores/userData.js";
 import {getRandomNumber} from "../utils/number.js";
-export default class BattleScene extends Phaser.Scene {
+export default class BattleScene extends Scene {
   constructor() {
     super("Battle");
     this.ennemyPokemon = {};
@@ -18,7 +19,7 @@ export default class BattleScene extends Phaser.Scene {
   }
   init(data) {
     this.ennemyPokemon.data = data.pokemon;
-    this.isShiny = getRandomNumber(0, 1024) === 0;
+    this.isShiny = getRandomNumber(0, 512) === 0;
   }
   create() {
     const background = this.add.image(this.scale.width / 2, this.scale.height / 2, "battle_background");
@@ -41,7 +42,7 @@ export default class BattleScene extends Phaser.Scene {
     this.ennemyPokemon.image.scaleX = this.ennemyPokemon.image.scaleY;
     this.ennemyPokemon.image.y = Number(this.game.config.height) / 3.5;
     this.ennemyPokemon.image.x = Number(this.game.config.width);
-    this.ennemyPokemon.image.tint = 4473924;
+    this.ennemyPokemon.image.tint = 0;
     const positionTransitionDelay = 1e3;
     this.tweens.add({
       targets: this.trainerBack,
@@ -62,26 +63,22 @@ export default class BattleScene extends Phaser.Scene {
       if (this.ennemyPokemon.image) {
         this.ennemyPokemon.image.setDepth(99);
         this.ennemyPokemon.image.tint = 16777215;
+        const circle = new Phaser.Geom.Circle(this.ennemyPokemon.image.x - 15, this.ennemyPokemon.image.y, this.ennemyPokemon.image.displayHeight / 2);
         if (this.isShiny) {
-          const zoneLimit = new Phaser.Geom.Circle(0, 0, Number(this.game.config.height));
-          const stars = this.add.particles("object_star");
-          stars.setScale(0.1);
-          stars.setPosition(Number(this.game.config.width) / 1.5, Number(this.game.config.height) / 4);
-          stars.createEmitter({
-            maxParticles: 4,
-            x: this.ennemyPokemon.image.x / (this.ennemyPokemon.image.width / 2),
-            y: this.ennemyPokemon.image.y / (this.ennemyPokemon.image.height / 2),
-            scale: {start: 0.8, end: 0},
-            lifespan: 500,
-            frequency: 250,
-            speed: 200,
-            gravityY: -50,
-            angle: {min: 180, max: 360},
-            emitZone: {type: "random", source: zoneLimit}
+          const starsEmitter = this.add.particles(0, 0, "object_star", {
+            speed: 0.5,
+            lifespan: 1500,
+            quantity: 1,
+            scale: {start: 0.05, end: 0.03},
+            emitting: false,
+            emitZone: {
+              type: "edge",
+              source: circle,
+              quantity: 20
+            },
+            duration: 250
           });
-          this.time.delayedCall(1500, () => {
-            stars.destroy();
-          });
+          starsEmitter.start(1);
         }
       }
     });
@@ -130,7 +127,7 @@ export default class BattleScene extends Phaser.Scene {
     });
   }
   listenKeyboardControl() {
-    this.input.keyboard.on("keyup", (event) => {
+    this.input.keyboard?.on("keyup", (event) => {
       const uiStore = useUIStore.getState();
       const isOpen = uiStore.battle.isOpen;
       switch (event.key.toUpperCase()) {

@@ -1,4 +1,5 @@
-export default class UIButton extends Phaser.GameObjects.Container {
+import {GameObjects, Display} from "../../_snowpack/pkg/phaser.js";
+export default class UIButton extends GameObjects.Container {
   constructor(scene, x, y, key, hoverkey, text, targetCallBack) {
     super(scene, x, y);
     this.scene = scene;
@@ -17,7 +18,7 @@ export default class UIButton extends Phaser.GameObjects.Container {
       fontSize: "26px",
       color: "white"
     });
-    Phaser.Display.Align.In.Center(this.buttonText, this.button);
+    Display.Align.In.Center(this.buttonText, this.button);
     this.add(this.button);
     this.add(this.buttonText);
     this.button.on("pointerdown", () => {

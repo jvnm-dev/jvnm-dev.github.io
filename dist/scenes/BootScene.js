@@ -1,8 +1,9 @@
+import {Scene} from "../../_snowpack/pkg/phaser.js";
 import {PLAYER_SIZE} from "../constants/game.js";
 import {Audios, Maps, Sprites} from "../constants/assets.js";
 import {Tilesets} from "../constants/assets.js";
 import {useUserDataStore} from "../stores/userData.js";
-export default class BootScene extends Phaser.Scene {
+export default class BootScene extends Scene {
   constructor() {
     super("Boot");
   }

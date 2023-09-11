@@ -1,5 +1,5 @@
-import create from "../../web_modules/zustand.js";
-import {devtools} from "../../web_modules/zustand/middleware.js";
+import create from "../../_snowpack/pkg/zustand.js";
+import {devtools} from "../../_snowpack/pkg/zustand/middleware.js";
 export const useUIStore = create()(devtools((set) => ({
   dialog: {
     isOpen: false,

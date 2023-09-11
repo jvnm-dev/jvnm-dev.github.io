@@ -20,21 +20,12 @@ export const toggleMenu = () => {
     return useUIStore.getState().toggleMenu();
   }
 };
-export const triggerUIExit = () => {
-  window.dispatchEvent(new Event(UIEvents.EXIT));
+const dispatch = (eventType) => {
+  window.dispatchEvent(new Event(eventType));
 };
-export const triggerUINextStep = () => {
-  window.dispatchEvent(new Event(UIEvents.NEXT_STEP));
-};
-export const triggerUIDown = () => {
-  window.dispatchEvent(new Event(UIEvents.DOWN));
-};
-export const triggerUIUp = () => {
-  window.dispatchEvent(new Event(UIEvents.UP));
-};
-export const triggerUILeft = () => {
-  window.dispatchEvent(new Event(UIEvents.LEFT));
-};
-export const triggerUIRight = () => {
-  window.dispatchEvent(new Event(UIEvents.RIGHT));
-};
+export const triggerUIExit = () => dispatch(UIEvents.EXIT);
+export const triggerUINextStep = () => dispatch(UIEvents.NEXT_STEP);
+export const triggerUIDown = () => dispatch(UIEvents.DOWN);
+export const triggerUIUp = () => dispatch(UIEvents.UP);
+export const triggerUILeft = () => dispatch(UIEvents.LEFT);
+export const triggerUIRight = () => dispatch(UIEvents.RIGHT);

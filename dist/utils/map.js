@@ -3,7 +3,7 @@ import {Layers, Sprites} from "../constants/assets.js";
 import {getSpawn} from "./object.js";
 export const getCurrentPlayerTile = (scene) => {
   const {cameras, tilemap} = scene;
-  const {x, y} = scene.gridEngine.getSprite(Sprites.PLAYER);
+  const {x, y} = scene.gridEngine.getSprite(Sprites.PLAYER) ?? {x: 0, y: 0};
   const tile = tilemap.getTileAtWorldXY(x, y, true, cameras.main, Layers.WORLD);
   if (!tile) {
     return;

@@ -1,4 +1,4 @@
-import {useState, useEffect} from "../../../web_modules/react.js";
+import {useState, useEffect} from "../../../_snowpack/pkg/react.js";
 export const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
     width: void 0,

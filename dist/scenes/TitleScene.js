@@ -1,7 +1,8 @@
+import {Scene} from "../../_snowpack/pkg/phaser.js";
 import {Audios} from "../constants/assets.js";
 import {getAudioConfig, playClick} from "../utils/audio.js";
 import UIButton from "../prefabs/UIButton.js";
-export default class TitleScene extends Phaser.Scene {
+export default class TitleScene extends Scene {
   constructor() {
     super("Title");
   }

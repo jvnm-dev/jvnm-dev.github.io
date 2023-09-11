@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "../../../web_modules/react.js";
+import React, {useEffect, useState} from "../../../_snowpack/pkg/react.js";
 import {UIEvents} from "../../constants/events.js";
 import {openDialog} from "../../utils/ui.js";
 import {useUIStore} from "../../stores/ui.js";

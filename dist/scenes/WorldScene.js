@@ -1,11 +1,12 @@
-import {Direction} from "../../web_modules/grid-engine.js";
+import {Scene} from "../../_snowpack/pkg/phaser.js";
+import {Direction} from "../../_snowpack/pkg/grid-engine.js";
 import {GAME_HEIGHT, GAME_WIDTH} from "../constants/game.js";
 import {Sprites, Layers, Tilesets, Maps} from "../constants/assets.js";
 import {
   convertObjectPositionToTilePosition,
   getObjectUnderPlayer,
   handleBicycle,
-  handleClickOnObject,
+  handleClickOnObjectIfAny,
   handleOverlappableObject,
   removeObject,
   spawnNPC
@@ -25,7 +26,7 @@ import {
 } from "../utils/ui.js";
 import {useUserDataStore} from "../stores/userData.js";
 import {useUIStore} from "../stores/ui.js";
-export default class WorldScene extends Phaser.Scene {
+export default class WorldScene extends Scene {
   constructor() {
     super("World");
     this.map = Maps.MAP;
@@ -59,7 +60,10 @@ export default class WorldScene extends Phaser.Scene {
     this.tilemap = this.make.tilemap({key: this.map});
     const all_tilesets = Object.values(Tilesets).reduce((acc, value) => {
       if (this.tilemap.tilesets.find(({name}) => name === value)) {
-        acc = [...acc, this.tilemap.addTilesetImage(value)];
+        const tileset = this.tilemap.addTilesetImage(value);
+        if (tileset) {
+          acc = [...acc, tileset];
+        }
       }
       return acc;
     }, []);
@@ -81,7 +85,7 @@ export default class WorldScene extends Phaser.Scene {
     this.speed = onBicycle ? 10 : 5;
     this.currentSprite.setOrigin(0.5, 0.5);
     this.currentSprite.setDepth(1);
-    this.currentSprite.setScale(1.25);
+    this.currentSprite.setScale(1.1);
     [player, bicycle].forEach((sprite) => {
       if (sprite.texture.key !== this.currentSprite.texture.key) {
         sprite.destroy();
@@ -108,6 +112,9 @@ export default class WorldScene extends Phaser.Scene {
     };
     this.gridEngine.create(this.tilemap, gridEngineConfig);
   }
+  initializeNPCs() {
+    spawnNPC(this);
+  }
   initializeCamera() {
     this.cameras.roundPixels = true;
     this.cameras.main.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT);
@@ -115,24 +122,23 @@ export default class WorldScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.currentSprite, true);
     this.cameras.main.setFollowOffset(-this.currentSprite.width, -this.currentSprite.height);
   }
-  initializeNPCs() {
-    spawnNPC(this);
-  }
   listenKeyboardControl() {
-    this.input.keyboard.on("keyup", (event) => {
+    this.input.keyboard?.on("keyup", (event) => {
       const uiStore = useUIStore.getState();
-      const isOpen = uiStore.menu.isOpen || uiStore.dialog.isOpen;
+      const isUIOpen2 = uiStore.menu.isOpen || uiStore.dialog.isOpen;
+      if (this.data.get("battleStarted")) {
+        return;
+      }
       switch (event.key.toUpperCase()) {
         case "M":
           this.sound.mute = !this.sound.mute;
           break;
-        case "ENTER":
         case "E":
-          if (isUIOpen()) {
+          if (isUIOpen2) {
             playClick(this);
             triggerUINextStep();
           } else {
-            handleClickOnObject(this);
+            handleClickOnObjectIfAny(this);
           }
           break;
         case "ESCAPE":
@@ -144,33 +150,28 @@ export default class WorldScene extends Phaser.Scene {
           }
           break;
         case " ":
-          if (isUIOpen()) {
-            playClick(this);
-            triggerUINextStep();
-          } else {
-            handleBicycle(this);
-          }
+          handleBicycle(this);
           break;
         case "ARROWDOWN":
-          if (isOpen) {
+          if (isUIOpen2) {
             playClick(this);
             triggerUIDown();
           }
           break;
         case "ARROWUP":
-          if (isOpen) {
+          if (isUIOpen2) {
             playClick(this);
             triggerUIUp();
           }
           break;
         case "ARROWLEFT":
-          if (isOpen) {
+          if (isUIOpen2) {
             playClick(this);
             triggerUILeft();
           }
           break;
         case "ARROWRIGHT":
-          if (isOpen) {
+          if (isUIOpen2) {
             playClick(this);
             triggerUIRight();
           }
@@ -179,9 +180,9 @@ export default class WorldScene extends Phaser.Scene {
     });
   }
   listenMoves() {
-    const cursors = this.input.keyboard.createCursorKeys();
-    const keys = this.input.keyboard.addKeys("W,S,A,D");
-    if (!isUIOpen() && !this.gridEngine.isMoving(Sprites.PLAYER)) {
+    if (this.input.keyboard && !isUIOpen() && !this.gridEngine.isMoving(Sprites.PLAYER)) {
+      const cursors = this.input.keyboard.createCursorKeys();
+      const keys = this.input.keyboard.addKeys("W,S,A,D");
       if (cursors.left.isDown || keys.A.isDown) {
         this.gridEngine.move(Sprites.PLAYER, Direction.LEFT);
       } else if (cursors.right.isDown || keys.D.isDown) {

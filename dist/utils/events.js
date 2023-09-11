@@ -1,4 +1,4 @@
-import {useEffect} from "../../web_modules/react.js";
+import {useEffect} from "../../_snowpack/pkg/react.js";
 export const useEventsListeners = (listeners, deps) => {
   useEffect(() => {
     listeners.forEach(({name, callback}) => window.addEventListener(name, callback));

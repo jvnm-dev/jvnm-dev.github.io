@@ -1,4 +1,4 @@
-import React from "../../../web_modules/react.js";
+import React from "../../../_snowpack/pkg/react.js";
 import {useEventsListeners} from "../../utils/events.js";
 import {Audios} from "../../constants/assets.js";
 import {UIEvents} from "../../constants/events.js";

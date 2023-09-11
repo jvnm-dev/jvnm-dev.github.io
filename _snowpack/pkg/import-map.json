@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "grid-engine": "./grid-engine.js",
+    "lodash/capitalize": "./lodash/capitalize.js",
+    "phaser": "./phaser.js",
+    "react": "./react.js",
+    "react-dom/client": "./react-dom/client.js",
+    "zustand": "./zustand.js",
+    "zustand/middleware": "./zustand/middleware.js"
+  }
+}

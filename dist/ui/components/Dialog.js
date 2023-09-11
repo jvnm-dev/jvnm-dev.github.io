@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from "../../../web_modules/react.js";
+import React, {useState, useEffect, useRef} from "../../../_snowpack/pkg/react.js";
 import {UIEvents} from "../../constants/events.js";
 import {useUIStore} from "../../stores/ui.js";
 import {useEventsListeners} from "../../utils/events.js";
@@ -56,5 +56,5 @@ export const Dialog = () => {
     }
   }), /* @__PURE__ */ React.createElement("span", {
     className: "blink"
-  }, "\u25BC")));
+  }, "▼")));
 };
